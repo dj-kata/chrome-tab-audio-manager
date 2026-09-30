@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Audio Router",
+  "description": "Control volume, stereo pan, and output device per Chrome tab.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "activeTab",
+    "offscreen",
+    "storage",
+    "tabCapture"
+  ],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "action": {
+    "default_title": "Tab Audio Router",
+    "default_popup": "popup.html"
+  }
+}

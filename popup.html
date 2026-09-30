@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tab Audio Router</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <h1>Tab Audio Router</h1>
+        <p id="tabTitle" class="tab-title">Current tab</p>
+      </header>
+
+      <section id="status" class="status" role="status" aria-live="polite"></section>
+
+      <div class="actions">
+        <button id="enableButton" class="primary" type="button">Enable audio processing</button>
+        <button id="stopButton" type="button" disabled>Stop processing</button>
+      </div>
+
+      <section class="control-group">
+        <div class="label-row">
+          <label for="volumeRange">Volume</label>
+          <output id="volumeValue" for="volumeRange">100%</output>
+        </div>
+        <input id="volumeRange" type="range" min="0" max="200" step="1" value="100" disabled>
+      </section>
+
+      <section class="control-group">
+        <div class="label-row">
+          <label for="panRange">Pan</label>
+          <output id="panValue" for="panRange">Center</output>
+        </div>
+        <div class="pan-row">
+          <span>L</span>
+          <input id="panRange" type="range" min="-100" max="100" step="1" value="0" disabled>
+          <span>R</span>
+        </div>
+      </section>
+
+      <section class="control-group">
+        <label for="outputSelect">Output</label>
+        <select id="outputSelect" disabled>
+          <option value="default">System Default</option>
+        </select>
+        <button id="selectOutputButton" type="button" disabled>Add / Select audio device</button>
+        <p id="outputHelp" class="help"></p>
+      </section>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
