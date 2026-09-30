@@ -174,3 +174,19 @@ output,
   margin: 0;
   font-size: 12px;
 }
+
+.compact-control {
+  gap: 4px;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+}
+
+.check-row input {
+  width: 16px;
+  height: 16px;
+}

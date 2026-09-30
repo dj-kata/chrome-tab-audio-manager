@@ -25,7 +25,15 @@
           <label for="volumeRange">Volume</label>
           <output id="volumeValue" for="volumeRange">100%</output>
         </div>
-        <input id="volumeRange" type="range" min="0" max="200" step="1" value="100" disabled>
+        <input id="volumeRange" type="range" min="0" max="600" step="1" value="100" disabled>
+      </section>
+
+      <section class="control-group compact-control">
+        <label class="check-row">
+          <input id="limiterToggle" type="checkbox" disabled>
+          <span>Limiter</span>
+        </label>
+        <p class="help">Reduces clipping when volume is boosted above 100%.</p>
       </section>
 
       <section class="control-group">

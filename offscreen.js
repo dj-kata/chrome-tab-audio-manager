@@ -25,6 +25,8 @@ async function handleMessage(message) {
       return setVolume(message.tabId, message.volume);
     case "SET_PAN":
       return setPan(message.tabId, message.pan);
+    case "SET_LIMITER":
+      return setLimiter(message.tabId, message.limiterEnabled);
     case "SET_OUTPUT_DEVICE":
       return setOutputDevice(message.tabId, message.outputDeviceId);
     case "GET_SESSION_STATE":
@@ -43,18 +45,21 @@ async function handleMessage(message) {
 async function startCapture(tabId, streamId, settings = {}) {
   await stopCapture(tabId, "Restarting capture.");
 
-  const volume = clampNumber(settings.volume, 0, 2, 1);
+  const volume = clampNumber(settings.volume, 0, 6, 1);
   const pan = clampNumber(settings.pan, -1, 1, 0);
+  const limiterEnabled = Boolean(settings.limiterEnabled);
   const outputDeviceId = normalizeDeviceId(settings.outputDeviceId);
   const stream = await getTabMediaStream(streamId);
   const audioContext = new AudioContext();
   const sourceNode = audioContext.createMediaStreamSource(stream);
   const gainNode = audioContext.createGain();
   const panNode = audioContext.createStereoPanner();
+  const compressorNode = audioContext.createDynamicsCompressor();
+  configureLimiter(compressorNode);
 
   gainNode.gain.value = volume;
   panNode.pan.value = pan;
-  sourceNode.connect(gainNode).connect(panNode).connect(audioContext.destination);
+  sourceNode.connect(gainNode).connect(panNode);
 
   const session = {
     tabId,
@@ -63,11 +68,15 @@ async function startCapture(tabId, streamId, settings = {}) {
     sourceNode,
     gainNode,
     panNode,
+    compressorNode,
     outputDeviceId,
     volume,
     pan,
+    limiterEnabled,
     error: ""
   };
+
+  connectAudioGraph(session);
 
   stream.getAudioTracks().forEach((track) => {
     track.addEventListener("ended", () => {
@@ -112,7 +121,7 @@ async function stopCapture(tabId, reason) {
 
 async function setVolume(tabId, value) {
   const session = requireSession(tabId);
-  session.volume = clampNumber(value, 0, 2, 1);
+  session.volume = clampNumber(value, 0, 6, 1);
   session.gainNode.gain.setTargetAtTime(session.volume, session.audioContext.currentTime, 0.01);
   return { ok: true, state: serializeSession(session) };
 }
@@ -121,6 +130,13 @@ async function setPan(tabId, value) {
   const session = requireSession(tabId);
   session.pan = clampNumber(value, -1, 1, 0);
   session.panNode.pan.setTargetAtTime(session.pan, session.audioContext.currentTime, 0.01);
+  return { ok: true, state: serializeSession(session) };
+}
+
+async function setLimiter(tabId, value) {
+  const session = requireSession(tabId);
+  session.limiterEnabled = Boolean(value);
+  connectAudioGraph(session);
   return { ok: true, state: serializeSession(session) };
 }
 
@@ -251,6 +267,7 @@ async function cleanupSession(session) {
     session.sourceNode.disconnect();
     session.gainNode.disconnect();
     session.panNode.disconnect();
+    session.compressorNode.disconnect();
   } catch (error) {
     console.debug("Audio node disconnect failed", error);
   }
@@ -262,6 +279,29 @@ async function cleanupSession(session) {
   if (session.audioContext.state !== "closed") {
     await session.audioContext.close();
   }
+}
+
+function connectAudioGraph(session) {
+  try {
+    session.panNode.disconnect();
+    session.compressorNode.disconnect();
+  } catch (error) {
+    console.debug("Audio graph reconnect cleanup failed", error);
+  }
+
+  if (session.limiterEnabled) {
+    session.panNode.connect(session.compressorNode).connect(session.audioContext.destination);
+  } else {
+    session.panNode.connect(session.audioContext.destination);
+  }
+}
+
+function configureLimiter(compressorNode) {
+  compressorNode.threshold.value = -3;
+  compressorNode.knee.value = 0;
+  compressorNode.ratio.value = 20;
+  compressorNode.attack.value = 0.003;
+  compressorNode.release.value = 0.1;
 }
 
 function requireSession(tabId) {
@@ -277,6 +317,7 @@ function serializeSession(session) {
     active: true,
     volume: session.volume,
     pan: session.pan,
+    limiterEnabled: session.limiterEnabled,
     outputDeviceId: session.outputDeviceId,
     audioContextState: session.audioContext.state,
     error: session.error || ""

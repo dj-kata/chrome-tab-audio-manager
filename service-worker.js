@@ -3,7 +3,8 @@ const OFFSCREEN_DOCUMENT_URL = chrome.runtime.getURL(OFFSCREEN_DOCUMENT_PATH);
 const DEFAULT_SETTINGS = {
   volume: 1,
   pan: 0,
-  outputDeviceId: "default"
+  outputDeviceId: "default",
+  limiterEnabled: false
 };
 
 let creatingOffscreenDocument;
@@ -51,6 +52,8 @@ async function handleRuntimeMessage(message) {
       return updateAudioSetting(message.tabId, "volume", message.volume, "SET_VOLUME");
     case "SET_PAN":
       return updateAudioSetting(message.tabId, "pan", message.pan, "SET_PAN");
+    case "SET_LIMITER":
+      return updateAudioSetting(message.tabId, "limiterEnabled", Boolean(message.limiterEnabled), "SET_LIMITER");
     case "SET_OUTPUT_DEVICE":
       return updateAudioSetting(
         message.tabId,
@@ -198,9 +201,10 @@ async function getStoredTabSettings(tabId) {
 async function setStoredTabSettings(tabId, settings) {
   await chrome.storage.local.set({
     [storageKey(tabId)]: {
-      volume: clampNumber(settings.volume, 0, 2, DEFAULT_SETTINGS.volume),
+      volume: clampNumber(settings.volume, 0, 6, DEFAULT_SETTINGS.volume),
       pan: clampNumber(settings.pan, -1, 1, DEFAULT_SETTINGS.pan),
-      outputDeviceId: normalizeOutputDeviceId(settings.outputDeviceId)
+      outputDeviceId: normalizeOutputDeviceId(settings.outputDeviceId),
+      limiterEnabled: Boolean(settings.limiterEnabled)
     }
   });
 }

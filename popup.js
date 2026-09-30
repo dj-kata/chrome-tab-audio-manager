@@ -9,6 +9,7 @@ const ui = {
   panValue: document.getElementById("panValue"),
   outputSelect: document.getElementById("outputSelect"),
   selectOutputButton: document.getElementById("selectOutputButton"),
+  limiterToggle: document.getElementById("limiterToggle"),
   outputHelp: document.getElementById("outputHelp")
 };
 
@@ -30,6 +31,7 @@ ui.volumeRange.addEventListener("input", onVolumeInput);
 ui.volumeRange.addEventListener("change", onVolumeChange);
 ui.panRange.addEventListener("input", onPanInput);
 ui.panRange.addEventListener("change", onPanChange);
+ui.limiterToggle.addEventListener("change", onLimiterChange);
 ui.outputSelect.addEventListener("change", onOutputChange);
 ui.selectOutputButton.addEventListener("click", selectAudioOutput);
 
@@ -119,6 +121,22 @@ async function onPanChange() {
     const response = await sendMessage({ type: "SET_PAN", tabId: currentTab.id, pan });
     if (!response.ok) {
       throw new Error(response.error || "Could not update pan.");
+    }
+  } catch (error) {
+    showStatus(normalizeError(error), "error");
+  }
+}
+
+async function onLimiterChange() {
+  try {
+    const limiterEnabled = ui.limiterToggle.checked;
+    const response = await sendMessage({
+      type: "SET_LIMITER",
+      tabId: currentTab.id,
+      limiterEnabled
+    });
+    if (!response.ok) {
+      throw new Error(response.error || "Could not update limiter.");
     }
   } catch (error) {
     showStatus(normalizeError(error), "error");
@@ -231,6 +249,9 @@ function applySettings(settings) {
   if (Number.isFinite(settings.pan)) {
     ui.panRange.value = String(Math.round(settings.pan * 100));
   }
+  if (typeof settings.limiterEnabled === "boolean") {
+    ui.limiterToggle.checked = settings.limiterEnabled;
+  }
   if (settings.outputDeviceId) {
     renderDeviceOptions(settings.outputDeviceId);
   }
@@ -243,6 +264,7 @@ function renderState() {
   ui.stopButton.disabled = !active;
   ui.volumeRange.disabled = !active;
   ui.panRange.disabled = !active;
+  ui.limiterToggle.disabled = !active;
   ui.outputSelect.disabled = !active || !support.setSinkId;
   ui.selectOutputButton.disabled = !support.setSinkId || !navigator.mediaDevices?.enumerateDevices;
 
