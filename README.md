@@ -39,7 +39,7 @@ The extension does not request host permissions such as `<all_urls>` and does no
 
 ## Output Device Permission
 
-Chrome may require the user to explicitly approve non-default audio output devices. The popup uses `navigator.mediaDevices.selectAudioOutput()` when available, and the offscreen audio session applies the selected device with `AudioContext.setSinkId()`.
+Chrome may require the user to explicitly approve non-default audio output devices. The popup uses `navigator.mediaDevices.selectAudioOutput()` when available. If that API is unavailable, the **Add / Select audio device** button opens `device-permission.html` in a normal extension tab. That page requests temporary microphone access with `navigator.mediaDevices.getUserMedia({ audio: true })`, immediately stops the stream, stores the exposed output devices, and lets the popup use them after it is reopened. The offscreen audio session applies the selected device with `AudioContext.setSinkId()`.
 
 If `AudioContext.setSinkId()` or audio output selection is unavailable in the current Chrome build, the extension keeps volume and pan processing enabled and disables only output device routing.
 

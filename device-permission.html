@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Audio Device Access</title>
+    <link rel="stylesheet" href="device-permission.css">
+  </head>
+  <body>
+    <main class="page">
+      <section class="panel">
+        <h1>Audio Device Access</h1>
+        <p>
+          Vivaldi may not show audio permission prompts from an extension popup.
+          Use this page to grant temporary microphone access so the extension can list output devices.
+        </p>
+
+        <button id="grantButton" type="button">Grant audio device access</button>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+
+        <section>
+          <h2>Detected outputs</h2>
+          <ul id="deviceList">
+            <li>System Default</li>
+          </ul>
+        </section>
+      </section>
+    </main>
+    <script src="device-permission.js"></script>
+  </body>
+</html>

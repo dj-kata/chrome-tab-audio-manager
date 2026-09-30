@@ -147,29 +147,41 @@ async function onOutputChange() {
 }
 
 async function selectAudioOutput() {
-  if (!navigator.mediaDevices?.selectAudioOutput) {
-    showStatus("This Chrome build does not expose audio output selection here.", "error");
+  if (navigator.mediaDevices?.selectAudioOutput) {
+    try {
+      const device = await navigator.mediaDevices.selectAudioOutput();
+      if (device?.deviceId) {
+        upsertDevice({
+          deviceId: device.deviceId,
+          label: device.label || "Selected audio output"
+        });
+        renderDeviceOptions(device.deviceId);
+        if (active) {
+          await onOutputChange();
+        }
+      }
+    } catch (error) {
+      showStatus("Output device selection was not completed: " + normalizeError(error), "error");
+    }
     return;
   }
 
-  try {
-    const device = await navigator.mediaDevices.selectAudioOutput();
-    if (device?.deviceId) {
-      upsertDevice({
-        deviceId: device.deviceId,
-        label: device.label || "Selected audio output"
-      });
-      renderDeviceOptions(device.deviceId);
-      if (active) {
-        await onOutputChange();
-      }
-    }
-  } catch (error) {
-    showStatus(`Output device selection was not completed: ${normalizeError(error)}`, "error");
-  }
+  await openDevicePermissionPage();
+}
+
+async function openDevicePermissionPage() {
+  await chrome.tabs.create({
+    url: chrome.runtime.getURL("device-permission.html"),
+    active: true
+  });
 }
 
 async function refreshDevices() {
+  const storedDevices = await loadStoredOutputDevices();
+  for (const device of storedDevices) {
+    upsertDevice(device);
+  }
+
   const listed = await listDevicesInPopup();
   for (const device of listed) {
     upsertDevice(device);
@@ -232,12 +244,14 @@ function renderState() {
   ui.volumeRange.disabled = !active;
   ui.panRange.disabled = !active;
   ui.outputSelect.disabled = !active || !support.setSinkId;
-  ui.selectOutputButton.disabled = !support.selectAudioOutput;
+  ui.selectOutputButton.disabled = !support.setSinkId || !navigator.mediaDevices?.enumerateDevices;
 
   if (!support.setSinkId) {
     ui.outputHelp.textContent = "Output device routing is unavailable in this Chrome build.";
+  } else if (!navigator.mediaDevices?.enumerateDevices) {
+    ui.outputHelp.textContent = "This Chrome build cannot list audio output devices here.";
   } else if (!support.selectAudioOutput) {
-    ui.outputHelp.textContent = "Use System Default or already permitted output devices.";
+    ui.outputHelp.textContent = "Click Add/Select to open the device permission page.";
   } else {
     ui.outputHelp.textContent = "";
   }
@@ -300,6 +314,16 @@ function upsertDevice(device) {
 
 function mergeSupport(nextSupport = {}) {
   support = { ...support, ...nextSupport };
+}
+
+async function loadStoredOutputDevices() {
+  try {
+    const values = await chrome.storage.local.get("knownOutputDevices");
+    return Array.isArray(values.knownOutputDevices) ? values.knownOutputDevices : [];
+  } catch (error) {
+    console.debug("Unable to load stored output devices", error);
+    return [];
+  }
 }
 
 function formatPan(pan) {
